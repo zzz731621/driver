@@ -1,0 +1,30 @@
+make menuconfig操作教學
+1. 輸入"/"來呼叫搜尋介面
+
+2. 設置驅動的狀態
+    (1) 把驅動編譯成module，用M來表示
+    (2) 把驅動編譯到kernel中，用*來表示
+    (3) 不編譯。
+可以使用空白鍵來設置這三種狀態
+
+3. 退出
+分成保存退出和不保存退出
+選擇exit選項後可以選擇Yes或No來表示保存與否
+
+4. make menuconfig有關的文件
+Makefile，編譯規則，告訴我們在make時要怎麼編譯
+Kconfig，linux kernel設置的所有選項，類似菜單
+.config，設置完linux kernel後產生的設置選項，類似我們點的菜
+
+5. make menuconfig會讀取哪個目錄的Kconfig
+會根據環境變數ARCH的設置來讀取對應的Kconfig
+或是可以直接套用linux kernel中的arch/arm/configs/路徑下的默認config來生成.config
+
+6. 為什麼要生成.config
+因為linux kernel會默認讀取linux kernel根目錄下的.config作為設置選項
+
+7. 複製的默認config不符合我們要求要怎麼辦
+直接使用make menuconfig，設置完成會自動更新到.config中
+
+8. 怎麼和Makefile建立關係
+當make menuconfig保存退出後，Linux會將.config中的所有設置以macro的形式保存在linux kernel目錄下的include/generated/autoconf.h文件下

@@ -1,0 +1,40 @@
+範例
+source "drivers/redled/Kconfig"
+config LED__4412
+        tristate "Led Support for GPIO Led"
+        depends on LEDS_CLASS
+        help
+        This option enable support for led
+
+1. source "drivers/redled/Kconfig" > 包含drivers/redled路徑下的驅動文件
+
+2. config LED_4412 > 設置選項的名稱，全名為CONFIG_LED_4412，省略了前面的CONFIG_
+
+3. tristate "Led Support for GPIO Led" > tristate表示有三種驅動的狀態，分別是把驅動編譯成module，把驅動編譯到linux kernel和不編譯
+                                         與之對應的還有bool，表示有兩種驅動的狀態，分別是編譯到linux kernel和不編譯
+                                         "Led Support for GPIO Led"就是menuconfig顯示的名字
+
+4. depends on LEDS_CLASS > 表示只有在選擇LEDS_CLASS的情況下才能選擇LED_4412
+Q : 若想直接去掉LED相關的驅動，直接改.config文件可以嗎
+A : 可以，但不推薦。因為如果有依賴的話直接修改.config是不成功的
+
+select > 反向依賴，該選項被選中時，後面的定義也會被選中
+
+5. 
+help
+This option enable support for led
+這是幫助訊息
+
+
+操作流程
+1. 在linux kernel source code路徑下的drivers/char中創建一個目錄hello
+2. 將目錄下的文件複製到hello目錄中
+3. 在driver/char路徑下的Kconfig中加上source "drivers/char/hello/Kconfig"，來包含我們新增的Kconfig文件
+4. 並在drivers/char路徑下的Makefile中將obj-y變數追加hello/資料夾，也就是修改Makefile，在開頭加上obj-y += hello/即可( 必須要加'/' )，作用是告訴系統hello/底下的驅動是要編譯到kernel當中的( 因為是-y )
+5. 若之前已經編譯過kernel，要先清除之前的結果make clean、make mrproper，後再輸入make 100ask_imx6ull_qemu_defconfig產生出.config文件，100ask_imx6ull_qemu_defconfig是在arch/arm/configs目錄下的默認config文件
+6. 回到linux kernel source code目錄，執行make menuconfig，並去device drivers -> Character devices中將hello world勾選成*的狀態並保存退出
+7. 接著執行make -j 6即可開始編譯kernel
+8. 編譯完成後將arch/arm/boot路徑下的zImage作為kernel image燒寫到開發板中，也就是放到~/ubuntu-18.04_imx6ul_qemu_system/imx6ull-system-image/目錄下
+9. 接著執行~/ubuntu-18.04_imx6ul_qemu_system路徑下的qemu-imx6ull-nogui.sh腳本，使用剛剛燒寫的image啟動開發板
+10.觀察啟動訊息就可以看到印出hello world
+

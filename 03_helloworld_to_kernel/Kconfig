@@ -1,0 +1,4 @@
+config HELLO
+	tristate "hello world"
+	help
+	hello hello

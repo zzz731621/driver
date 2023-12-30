@@ -1,0 +1,84 @@
+Linux三大設備驅動
+1. 字符設備( character device ) : IO的傳輸是以char為單位，沒有緩衝，比如I2C、SPI都是字符設備
+2. 塊設備( block device ) : IO的傳輸過程是以block為單位，和儲存相關的都屬於塊設備，比如tf卡
+3. 網路設備( network device ) : 是以socket來訪問的
+
+
+1.  雜項設備是屬於字符設備的一種，可以自動生成設備節點。
+    設備節點可以去開發板上/dev路徑下查看。
+    開發版上的雜項設備可以使用cat /proc/misc查看
+
+2.  雜項設備的code比字符設備簡單並且它的主設備號相同，均為10，而次設備號不同。
+    主設備號相同可以節省kernel的資源。
+
+3.  設備號班含主設備號和次設備號，主設備號在Linux系統中是唯一的，次設備號不一定唯一。
+    設備號是系統便是設備的一種方式，主設備號相同的就被視為同一種設備。
+    主設備號可以看成是電話的區碼，次設備號就是電話號碼。
+    主設備號可以通過cat /proc/devices來查看，其中可以看到10號為misc就是雜項設備。
+
+4.  雜項設備的描述
+    定義在linux kernel目錄下，include/linux/miscdevice.h 
+    struct miscdevice  {
+        int minor; // 次設備號
+        const char *name; // 設備節點的名稱
+        const struct file_operations *fops; // 文件操作集合
+        
+        // 經常用到的只有上面三個成員，其他比較少用
+        struct list_head list;
+        struct device *parent;
+        struct device *this_device;
+        const struct attribute_group **groups;
+        const char *nodename;
+        umode_t mode;
+    };
+    在雜項設備中分別有註冊和取消註冊的函數
+    extern int misc_register(struct miscdevice *misc);
+    extern void misc_deregister(struct miscdevice *misc);
+
+
+    其中上面的file_operations的描述在include/linux/fs.h中
+    struct file_operations {
+        struct module *owner;
+        loff_t (*llseek) (struct file *, loff_t, int);
+        ssize_t (*read) (struct file *, char __user *, size_t, loff_t *);
+        ssize_t (*write) (struct file *, const char __user *, size_t, loff_t *);
+        ssize_t (*read_iter) (struct kiocb *, struct iov_iter *);
+        ssize_t (*write_iter) (struct kiocb *, struct iov_iter *);
+        int (*iterate) (struct file *, struct dir_context *);
+        int (*iterate_shared) (struct file *, struct dir_context *);
+        unsigned int (*poll) (struct file *, struct poll_table_struct *);
+        long (*unlocked_ioctl) (struct file *, unsigned int, unsigned long);
+        long (*compat_ioctl) (struct file *, unsigned int, unsigned long);
+        int (*mmap) (struct file *, struct vm_area_struct *);
+        int (*open) (struct inode *, struct file *);
+        int (*flush) (struct file *, fl_owner_t id);
+        int (*release) (struct inode *, struct file *);
+        int (*fsync) (struct file *, loff_t, loff_t, int datasync);
+        int (*fasync) (int, struct file *, int);
+        int (*lock) (struct file *, int, struct file_lock *);
+        ssize_t (*sendpage) (struct file *, struct page *, int, size_t, loff_t *, int);
+        unsigned long (*get_unmapped_area)(struct file *, unsigned long, unsigned long, unsigned long, unsigned long);
+        int (*check_flags)(int);
+        int (*flock) (struct file *, int, struct file_lock *);
+        ssize_t (*splice_write)(struct pipe_inode_info *, struct file *, loff_t *, size_t, unsigned int);
+        ssize_t (*splice_read)(struct file *, loff_t *, struct pipe_inode_info *, size_t, unsigned int);
+        int (*setlease)(struct file *, long, struct file_lock **, void **);
+        long (*fallocate)(struct file *file, int mode, loff_t offset,
+                          loff_t len);
+        void (*show_fdinfo)(struct seq_file *m, struct file *f);
+        #ifndef CONFIG_MMU
+        unsigned (*mmap_capabilities)(struct file *);
+        #endif
+        ssize_t (*copy_file_range)(struct file *, loff_t, struct file *,
+                        loff_t, size_t, unsigned int);
+        int (*clone_file_range)(struct file *, loff_t, struct file *, loff_t,
+                        u64);
+        ssize_t (*dedupe_file_range)(struct file *, u64, u64, struct file *,
+                        u64);
+    };
+    其中的每個成員都對應一個調用，之後會再細講。
+
+5.  註冊雜項設備的流程
+    (1). 填充miscdevice的結構體，只需要填充前三個即可。
+    (2). 填充file_operations這個結構體。
+    (3). 註冊雜項設備並生成設備節點。

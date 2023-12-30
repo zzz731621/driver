@@ -1,0 +1,1 @@
+cmd_/home/eric/work/driver/06/file_operations.ko := arm-linux-gnueabihf-ld -EL -r  -T ./scripts/module-common.lds --build-id  -o /home/eric/work/driver/06/file_operations.ko /home/eric/work/driver/06/file_operations.o /home/eric/work/driver/06/file_operations.mod.o ;  true

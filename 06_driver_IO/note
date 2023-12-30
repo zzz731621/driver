@@ -1,0 +1,36 @@
+Linux中的思想是一切皆文件( everything is file )
+對一個文件可以進行open、close、read和write操作
+
+1.  當我們在應用層read設備節點時，就會觸發驅動中的文件操作集合的read這個函數
+    ssize_t (*read) (struct file *, char __user *, size_t, loff_t *);
+
+    當我們在應用層write設備節點時，就會觸發驅動中的文件操作集合的write這個函數
+    ssize_t (*write) (struct file *, const char __user *, size_t, loff_t *);
+
+    當我們在應用層poll/select設備節點時，就會觸發驅動中的文件操作集合的poll這個函數
+    unsigned int (*poll) (struct file *, struct poll_table_struct *);
+
+    當我們在應用層ioctl設備節點時，就會觸發驅動中的文件操作集合的ioctl這個函數
+    long (*unlocked_ioctl) (struct file *, unsigned int, unsigned long);
+
+    當我們在應用層open設備節點時，就會觸發驅動中的文件操作集合的open這個函數
+    int (*open) (struct inode *, struct file *);
+
+    當我們在應用層close設備節點時，就會觸發驅動中的文件操作集合的release這個函數
+    int (*release) (struct inode *, struct file *);
+
+    以上函數都是在file_operations結構體中的成員
+    在我們註冊雜項設備驅動時可以去填充的
+
+    當我們在應用層執行程式時，程式可以透過對設備節點進行操作，來觸發kernel中的file_operations內我們定義的函數
+    這個方式可以允許應用程式透過標準文件IO來訪問kernel的資源
+    所以設備節點就是上層應用和底層驅動的橋樑
+
+2.  若我們的驅動中，沒有定義read，但我們在應用程式中read設備節點的話，不會提示錯誤，也不會發生什麼事
+
+3.  應用層和內核層不能直接進行數據傳輸
+    必須使用下面兩個函數來進行數據的讀取和寫入，被定義在include/asm-generic/uaccess.h文件底下
+    這個函數只能在驅動中使用，無法在應用程式中使用
+    static inline long copy_from_user(void *to, const void __user * from, unsigned long n)
+    static inline long copy_to_user(void __user *to, const void *from, unsigned long n)
+

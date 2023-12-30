@@ -1,0 +1,1 @@
+cmd_/home/eric/work/driver/05_register_misc_driver/misc.ko := arm-linux-gnueabihf-ld -EL -r  -T ./scripts/module-common.lds --build-id  -o /home/eric/work/driver/05_register_misc_driver/misc.ko /home/eric/work/driver/05_register_misc_driver/misc.o /home/eric/work/driver/05_register_misc_driver/misc.mod.o ;  true

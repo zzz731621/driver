@@ -1,0 +1,5 @@
+1. 在目錄下輸出make來編譯驅動
+2. 將生成的.ko文件複製到開發板上
+3. 使用insmod misc.ko來註冊驅動module，成功會印出misc registeration success
+4. 使用ls /dev/hello_misc來觀察，是否有自動生成設備節點
+5. 使用rmmod misc來取消註冊驅動，成功會印出bye bye

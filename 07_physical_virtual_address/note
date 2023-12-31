@@ -1,0 +1,31 @@
+1.  在MCU和bare machine中操作硬體的方式
+    可以宣告一個unsigned int *p = 0x12345678;
+    然後修改他的值*p = 0x87654321;
+
+    但是在linux上不能這樣操作
+    如果想要操作硬體，需要先把物理地址轉換成虛擬地址
+    因為linux啟用了MMU，所以在linux上不能直接操作物理地址，若要強行訪問，會產生segmentation fault
+
+2.  MMU有什麼作用
+    (1).  實現了虛擬地址
+    (2).  可以讓系統更安全，因為有了MMU，上層應用看到的記憶體都是虛擬地址
+    所以我們的應用程式就不能直接訪問硬體，這樣就保證了系統安全
+
+3.  MMU非常複雜，要怎麼完成物理地址到虛擬地址的轉換?
+    kernel提供了相關的函數，定義在kernel source code目錄下的include/asm-generic/io.h文件中
+    (1).    static inline void __iomem *ioremap_uc(phys_addr_t offset, size_t size)
+            把物理地址轉換成物理地址
+            phys_addr_t offset  : 映射物理地址的起始地址
+            size_t size         : 要映射多大的記憶體
+            若成功會回傳虛擬地址的起始地址
+            失敗則回傳NULL
+    (2).    static inline void iounmap(void __iomem *addr)
+            釋放ioremap映射的地址
+            void __iomem *addr  : 要取消映射的虛擬地址的起始地址
+
+    注意 : 物理地址只能被映射一次，若重複映射則會失敗
+
+4.  要如何查看哪些物理地址被映射過了?
+    使用cat /proc/iomem來查看
+
+

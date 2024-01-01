@@ -1,0 +1,1 @@
+cmd_/home/eric/work/driver/09_driver_parameter/parameter.ko := arm-linux-gnueabihf-ld -EL -r  -T ./scripts/module-common.lds --build-id  -o /home/eric/work/driver/09_driver_parameter/parameter.ko /home/eric/work/driver/09_driver_parameter/parameter.o /home/eric/work/driver/09_driver_parameter/parameter.mod.o ;  true

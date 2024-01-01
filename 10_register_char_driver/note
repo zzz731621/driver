@@ -1,0 +1,49 @@
+1.  字符設備和雜項設備的區別
+雜項設備的主設備號是固定的，固定為10，但字符設備需要自己或者系統來幫我們分配主設備號。
+雜項設備可以自動生成設備節點，字符設備需要我們自己生成設備節點。
+
+2.  註冊字符設備號的方法
+    (1).    靜態分配一個設備號，定義在inlcude/linux/fs.h中
+            extern int register_chrdev_region(dev_t, unsigned, const char *);
+            需要明確知道系統中哪些設備號沒有使用，可以在開發板上用cat /proc/devices查看
+            參數
+            第一個: 保存的設備號。 類型是dev_t類型
+            第二個: 次設備號的個數
+            第三個: 設備的名稱
+            成功分配則回傳0，失敗則返回非0
+
+            dev_t類型:
+            用來保存設備號的，是一個32位數
+            typedef __u32 __kernel_dev_t;
+            typedef __kernel_dev_t          dev_t;
+            高12位是用來保存主設備號，低20位是用來保存次設備號
+
+            linux提供了幾個macro來操作設備號，定義在與fs.h同目錄下的kdev_t.h中
+            #define MINORBITS       20
+            次設備號的位數，共20位
+            #define MINORMASK       ((1U << MINORBITS) - 1)
+            次設備號的mask，作用是低20位都變成1
+            #define MAJOR(dev)      ((unsigned int) ((dev) >> MINORBITS))
+            從dev_t中獲得主設備號，實際是就是將dev_t右移20位
+            #define MINOR(dev)      ((unsigned int) ((dev) & MINORMASK))
+            從dev_t中獲得次設備號，實際上就是和MASK做&運算
+            #define MKDEV(ma,mi)    (((ma) << MINORBITS) | (mi))
+            將我們的主設備號和次設備號組成一個dev_t類型，第一個參數是主設備號，第二個參數次設備號
+
+    (2).    動態分配一個設備號，定義在inlcude/linux/fs.h中
+            extern int alloc_chrdev_region(dev_t *, unsigned, unsigned, const char *);
+            參數:
+            第一個: 保存的設備號。 類型是dev_t類型
+            第二個: 我們申請的第一個次設備號，通常是0
+            第三個: 連續申請的設備號的個數
+            第四個: 設備名稱
+            成功分配則回傳0，失敗則返回非0
+            使用動態分配會優先使用234~255
+
+3.  取消字符設備號的方法
+    unregister_chrdev_region(dev_t, unsigned)
+    參數
+    第一個: dev_t類型的變數，用來存設備號的
+    第二個: 申請的連續設備號的個數
+
+建議使用動態申請，當專案越大，靜態申請越複雜

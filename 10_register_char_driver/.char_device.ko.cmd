@@ -1,1 +1,0 @@
-cmd_/home/eric/work/driver/10_register_char_driver/char_device.ko := arm-linux-gnueabihf-ld -EL -r  -T ./scripts/module-common.lds --build-id  -o /home/eric/work/driver/10_register_char_driver/char_device.ko /home/eric/work/driver/10_register_char_driver/char_device.o /home/eric/work/driver/10_register_char_driver/char_device.mod.o ;  true

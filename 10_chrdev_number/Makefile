@@ -1,5 +1,5 @@
 # -m表示編譯成module
-obj-m +=char_device.o
+obj-m +=chrdev.o
 
 # linux kernel source code的路徑
 KDIR:=/home/eric/work/100ask_imx6ull-qemu/linux-4.9.88

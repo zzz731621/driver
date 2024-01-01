@@ -1,0 +1,35 @@
+cdev結構體: 描述字符設備的一個結構體，定義在include/linux/cdev.h中
+struct cdev {
+    struct kobject kobj;
+    struct module *owner;
+    const struct file_operations *ops;
+    struct list_head list;
+    dev_t dev;
+    unsigned int count;
+};
+
+註冊流程:
+1.  定義一個cdev結構體變數
+2.  使用cdev init函數初始化
+    void cdev_init(struct cdev *, const struct file_operations *);
+    參數
+    第一個: 要初始化的cdev變數
+    第二個: 文件操作集合，函數內會將自己定義的fops的地址讓cdev->ops指過去
+3.  註冊設備
+    int cdev_add(struct cdev *, dev_t, unsigned);
+    參數
+    第一個: cdev的結構體指標
+    第二個: 設備號
+    第三個: 次設備號的個數
+
+4.  exit要取消註冊設備
+    void cdev_del(struct cdev *);
+    參數
+    第一個: cdev的結構體指標
+
+5.  字符設備註冊完後不會自動產生設備節點
+    需要使用mknod命令在開發板上創建一個設備節點
+    格式:
+    mknod 節點名稱 類型(c) 主設備號 次設備號
+    舉例:
+    mknod /dev/test c 244 0

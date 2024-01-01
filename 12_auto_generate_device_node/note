@@ -1,0 +1,50 @@
+上個實驗需要透過輸入命令mknod來手動創建設備節點
+為了使用者方便操作，要實現自動創建設備節點
+
+1.  怎麼自動創建設備節點
+    linux中使用mdev來實現設備節點的自動創建和刪除
+
+2.  mdev是什麼
+    是udev的簡化版，是busybox中所帶的程式，最適合用在嵌入式
+
+3.  udev是什麼
+    是一種工具，能夠根據系統中的硬體設備的狀態來動態更新設備文件，包括設備文件的創建、刪除等
+    udev一般用在PC，相對mdev更複雜。
+
+4.  怎麼自動創建設備節點
+    步驟1: 使用class_create函數創建一個class的結構體
+    步驟2: 使用device_create函數在我們創建的class結構體下面創建一個設備
+
+
+5.  創建和刪除class結構體
+    創建
+    #define class_create(owner, name)               \
+    ({                                              \
+            static struct lock_class_key __key;     \
+            __class_create(owner, name, &__key);    \
+    })
+    參數:
+    第一個: 屬於哪個module，通常是THIS_MODULE
+    第二個: class名稱
+    會回傳指向class結構體的指標
+
+    刪除
+    void class_destroy(struct class *cls);
+    參數cls為要刪除的class結構體
+
+6.  創建及刪除設備函數
+    創建
+    struct device *device_create(struct class *cls, struct device *parent,
+                             dev_t devt, void *drvdata,
+                             const char *fmt, ...);
+    cls就是要創建在哪個class下面
+    parent是父設備，通常為NULL，也就是沒有父設備
+    devt是設備號
+    drvdata是設備可能會用的數據，一般為NULL
+    fmt是設備名字，如果fmt=xxx，就會生成/dev/xxx這個設備文件
+    回傳值就是創建好的設備
+
+    刪除
+    void device_destroy(struct class *cls, dev_t devt);
+    cls就是所位於的class
+    devt就是要刪除的設備號

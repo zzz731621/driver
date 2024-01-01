@@ -1,0 +1,1 @@
+cmd_/home/eric/work/driver/12_auto_generate_device_node/chrdev.ko := arm-linux-gnueabihf-ld -EL -r  -T ./scripts/module-common.lds --build-id  -o /home/eric/work/driver/12_auto_generate_device_node/chrdev.ko /home/eric/work/driver/12_auto_generate_device_node/chrdev.o /home/eric/work/driver/12_auto_generate_device_node/chrdev.mod.o ;  true

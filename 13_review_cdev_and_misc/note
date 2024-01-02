@@ -1,0 +1,45 @@
+雜項設備框架
+1.  註冊雜項設備 -> misc_register( &misc )
+2.  構建雜項設備結構體
+    static struct miscdevice misc = {
+        .minor = 12,
+        .name = "filename", // /dev/下的名稱
+        .fops = &filename_fops
+    };
+3.  構建file_operations
+    read
+    write   - copy_from_user配合傳送參數user to kernel
+    open    - copy_to_user配合傳送參數kernel to user
+    close
+4.  取消註冊雜項設備 -> misc_deregister( &misc )
+
+字符設備框架
+1.  驅動初始化
+    (1).    分配設備號
+            靜態分配 -> register_chrdev_region
+            動態分配 -> alloc_chrdev_region
+            操作設備號dev_t，macro MAJOR用於從dev_t中獲得主設備號，MINOR獲得次設備號，MKDEV用於將主設備號和次設備號組合成dev_t類型的變數
+    (2).    初始化cdev -> cdev_init
+    (3).    註冊cdev -> cdev_add
+    (4).    初始化硬體
+2.  構建file_operations
+    read
+    write   - copy_from_user配合傳送參數user to kernel
+    open    - copy_to_user配合傳送參數kernel to user
+    close
+3.  生成設備節點
+    (1).    自動生成
+            創建一個class -> class_create
+            創建一個設備 -> device_create
+    (2).    手動生成
+            mknod命令
+4.  取消註冊驅動
+    釋放設備號 -> unregister_chrdev_region
+    卸載cdev -> cdev_del
+    卸載設備 -> device_destroy
+    卸載class -> class_destroy
+
+應用層打開設備節點
+    fd = open( "/dev/xxx", O_RDWR );   /* file_ops */  觸發對應的 xxx_open()
+    read( fd, date, 1 );               /* file_ops */  觸發對應的 xxx_read()
+    write( fd, date, 1 );              /* file_ops */  觸發對應的 xxx_write()

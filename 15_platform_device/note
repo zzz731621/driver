@@ -1,0 +1,42 @@
+1.  platform註冊一個device
+    device.c中寫的是硬體資源，指的是暫存器的地址、中斷號、clock等等
+    在linux kernel中，是用一個結構體來描述的，定義在include/linux/platform_device.h中
+    常用的只有以下成員
+    struct platform_device {
+        # platform進行配對的name，與driver.c進行比較，加載到kernel中可以在/sys/bus/platform/devices目錄下看到
+        const char      *name;
+        # 設備的id，一般寫-1
+        int             id;
+        # 內嵌的device結構體
+        struct device   dev;
+        # 資源的個數
+        u32             num_resources;
+        # device中的硬體資源
+        struct resource *resource;
+
+    };
+
+    其中struct resource的定義在include/linux/ioport.h中
+    常用的成員有以下
+    struct resource {
+        # 資源的起始地址
+        resource_size_t start;
+        # 資源的結束地址
+        resource_size_t end;
+        # 資源的名字
+        const char *name;
+        # 資源的類型
+        unsigned long flags;
+    };
+    資源類型通常用定義好的macro，常用的有以下，一樣定義在ioport.h
+    #define IORESOURCE_IO           0x00000100  IO的記憶體
+    #define IORESOURCE_MEM          0x00000200  表示一段物理記憶體地址
+    #define IORESOURCE_IRQ          0x00000400  表示中斷
+
+
+    都定義好後就可以
+    在init註冊
+    int platform_device_register(struct platform_device *);
+    在exit卸載
+    void platform_device_unregister(struct platform_device *);
+    參數都是platform_device結構體地址 

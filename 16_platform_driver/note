@@ -1,0 +1,44 @@
+編寫一個driver.c的思路
+首先定義一個platform_driver的結構體，然後去填充結構體的成員變數
+當driver和device配對成功時，就會執行probe函數
+所以配對成功後的重點在於probe函數的編寫
+
+platform_driver的結構體，一樣定義在/include/linux/platform_device.h中
+struct platform_driver {
+    # 當driver和device配對成功時，就會執行這個函數
+    int (*probe)(struct platform_device *);
+    # 當driver和device任意一個remove時，就會執行這個函數
+    int (*remove)(struct platform_device *);
+    # 當設備收到shutdown命令時，就會執行這個函數
+    void (*shutdown)(struct platform_device *);
+    # 當設備收到suspend命令時，就會執行這個函數
+    int (*suspend)(struct platform_device *, pm_message_t state);
+    # 當設備收到resume命令時，就會執行這個函數
+    int (*resume)(struct platform_device *);
+
+    # 結構體定義在下方
+    struct device_driver driver;
+    # 結構體定義在下方，並且它的成員優先級比device_driver的更高
+    # 也就是說當要和設備配對時，優先使用platform_device_id的name
+    const struct platform_device_id *id_table;
+};
+
+device_driver結構體
+struct device_driver {
+    # 配對設備時用到的名字
+    const char *name;
+    struct module *owner;
+};
+
+platform_device_id結構體
+struct platform_device_id {
+    char name[PLATFORM_NAME_SIZE];
+    kernel_ulong_t driver_data;
+};
+
+都定義好後就可以
+    在init註冊
+    int platform_driver_register(struct platform_device *);
+    在exit卸載
+    void platform_driver_unregister(struct platform_device *);
+    參數都是platform_driver結構體地址 

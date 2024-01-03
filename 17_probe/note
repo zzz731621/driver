@@ -1,0 +1,18 @@
+編寫probe的思路
+1.  從device.c裡面獲得硬體資源
+    (1).    直接使用probe的參數來直接使用，例如pdev->resource[0].name
+            不推薦，因為不安全
+    (2).    使用相關函數來獲得
+            struct resource *platform_get_resource(struct platform_device *, unsigned int, unsigned int);
+            參數
+            第一個: probe的參數pdev
+            第二個: 資源類型，在device.c中struct resource中的flags成員
+            第三個: 在struct resource中同類型資源的排序，若成員中相同flags只有他一個，這樣就是0
+            若他前面有跟他同類型的2個成員，這樣就是2
+                    
+2.  註冊雜項/字符設備，並且完成file_operations結構體，還要生成設備節點
+    通常在註冊之前要先登記，使用request_mem_region(start,n,name, excl)
+    但因為本次實驗只操作，所以先不登記
+    之後註冊雜項/字符設備的流程就跟以前一樣( 這次先註冊雜項設備 )
+    映射虛擬地址 > 註冊misc_register > 完善struct miscdevice和file_operations結構體
+    都好了就能在/dev/下發現設備節點。

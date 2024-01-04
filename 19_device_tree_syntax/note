@@ -1,0 +1,57 @@
+1.  一般語法:
+/{  // 根節點
+    node1 // 子節點node1
+    {
+
+    };
+    node2 // 子節點node2
+    {
+
+    };
+};
+
+2.  節點名稱:
+格式: <名稱>[@<設備地址>]
+<名稱> :通常是能夠體現設備的類型，例如網卡就要取ethernet，只要地址不同的話，名稱可以重複
+<設備地址> :跟驅動中操作的地址不同，主要是用來當作區分不同設備的標示符號，可以不寫，但是為了容易區分一般都會寫。
+
+3.  節點別名:
+例如
+uart8: serial@02288000
+uart8就是節點名稱的別名，引用的時候會更方便。
+
+4.  節點引用:
+&uart8 {
+    pinctrl-names = "default";
+    pinctrl-0 = <&pinctrl_uart8>;
+    status = "okay";
+};
+通常要往節點中添加東西時，不會直接寫到節點中，而是通過引用的方式來添加。
+相同節點的不同屬性會被合併
+相同節點的相同屬性會被覆蓋
+
+5.  屬性
+    (1).    reg屬性
+            用來描述一個設備的地址範圍。
+            格式: reg = <add1 length1 [add2 length2]...>
+            舉例:
+            serial@02288000 {
+                reg = <101F2000 0x1000>;
+            };
+    (2).    #address-cells和#size-cells屬性
+            #address-cells用來設置子節點中reg地址的數量，也就是有幾個address
+            #size-cells用來設置子節點中reg地址長度的數量，也就是有幾個length
+            舉例:
+            cpu {
+                #address-cells = <1>;
+                #size-cells = <1>;
+                serial@101F2000 {
+                    compatible = "serial";
+                    reg = <101F2000 0x1000>;
+                };
+            };
+    (3).    compatible屬性
+            用來跟platform的driver進行配對使用的字串
+    (4).    status屬性
+            通常使用兩種，okay表示設備能正常使用，disable表示設備不能正常使用
+

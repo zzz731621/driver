@@ -1,0 +1,16 @@
+1.  設備樹是一種描述硬體資源的數據結構。
+    通過bootloader將硬體資源傳給kernel，使硬體資源描述從kernel中獨立出來。
+
+2.  之前學到雜項設備和字符設備，都可以透過一些流程來編寫驅動，
+    但是如果有很多相似的設備時，就會導致重複做很多同樣的事情。
+    於是就誕生出了platform，把device和driver分離，這樣一來相似設備只需要修改device.c
+    但是使用linux來開發的硬體有非常多平台，不同平台都要定制一個kernel code
+    這就導致了移植性變低。
+
+3.  常用名詞
+    (1).    DT  :   device tree                 # 設備樹
+    (2).    FDT :   flattened device tree       # 展開設備樹，設備樹起源於OF，所以在設備樹中可以看到很多有of字母的函數
+    (3).    dts :   device tree source          # 設備樹源碼
+    (4).    dtsi:   device tree source include  # 通用的設備樹源碼，相同芯片但不同平台都可以使用的源碼
+    (5).    dtb :   device tree blob            # dts編譯後得到的文件dtb文件
+    (6).    dtc :   device tree compiler        # 設備樹編譯器

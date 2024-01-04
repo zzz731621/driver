@@ -1,0 +1,54 @@
+獲得設備樹節點資源的步驟:
+1.  查找我們要的節點。
+    inline struct device_node *of_find_node_by_path(const char *path)
+    作用: 通過路徑來查找指定的節點
+    參數: 完整路徑的節點名稱，不是在系統的路徑，而是在設備樹中的路徑。
+    可以使用節點的別名，比如"/backlight"就是backlight這個節點的全路徑，代表在根節點下。
+
+    返回值:
+    成功返回找到的節點，失敗返回NULL
+
+2.  獲取我們需要的屬性值
+    (1).
+    struct property *of_find_property(const struct device_node *np, const char *name, int *lenp);
+    參數:
+    np  : 設備節點
+    name: 屬性名稱
+    lenp: 屬性值的字節數，執行後會收到值，所以要用指針
+    返回值:
+    找到的屬性
+
+    (2).
+    有些屬性只有一個整型值，所以有4種函數來讀取不同類型的整型值
+    int of_property_read_u8(const struct device_node *np, const char *propname, u8 *out_value)
+    int of_property_read_u16(const struct device_node *np, const char *propname, u16 *out_value)
+    int of_property_read_u32(const struct device_node *np, const char *propname, u32 *out_value)
+    int of_property_read_u64(const struct device_node *np, const char *propname, u64 *out_value)
+    參數:
+    np          : 設備節點
+    proname     : 要讀取的屬性名稱
+    out_value   : 讀取到的array值
+
+    (3).
+    若要讀取array型別的數據，比如大部分的reg屬性都是array，就可以用以下4種
+    int of_property_read_u8_array(const struct device_node *np, const char *propname, u8 *out_values, size_t sz)
+    int of_property_read_u16_array(const struct device_node *np, const char *propname, u16 *out_values, size_t sz)
+    int of_property_read_u32_array(const struct device_node *np, const char *propname, u32 *out_values, size_t sz)
+    int of_property_read_u64_array(const struct device_node *np, const char *propname, u64 *out_values, size_t sz)
+    參數:
+    np          : 設備節點
+    proname     : 要讀取的屬性名稱
+    out_value   : 讀取到的array值，分別是u8、u16、u32、u64
+    sz          : 要讀取的array的元素數量
+    返回值:
+    成功返回0，失敗則是負數。
+
+    (4).
+    讀取屬性中字串的值
+    int of_property_read_string(const struct device_node *np, const char *propname, const char **out_string)
+    參數:
+    np          : 設備節點
+    proname     : 要讀取的屬性名稱
+    out_string  : 讀取到的字串值
+    返回值:
+    成功返回0，失敗則是負數。

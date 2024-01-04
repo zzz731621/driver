@@ -57,7 +57,7 @@ static int hello_init( void ) {
     printk( "out_values[1] is 0x%08x\n", out_values[1] );
 
 
-    // 獲取status屬性值
+    // 獲取status屬性值，也可以使用of_find_property
     ret = of_property_read_string( test_device_node, "status", &str );
     if ( ret < 0 ) {
         printk( "of_property_read_string error\n" );
@@ -73,15 +73,6 @@ static int hello_init( void ) {
 static void hello_exit( void ) {
     printk( "bye bye\n" );
 } // int
-
-
-
-
-
-
-
-
-
 
 
 

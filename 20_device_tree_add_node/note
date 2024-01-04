@@ -1,0 +1,28 @@
+根據上次介紹的基本語法，來添加一個設備樹節點
+修改在arch/arm/boot/dts/100ask_imx6ull_qemu.dts文件
+在根節點下添加
+    test1:test{
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		compatible = "test";
+		reg = <0x20ac000 0x0000004>;
+	};
+
+若沒安裝dtc，可以執行apt-get install device-tree-compiler
+之後進到kernel源碼目錄下，執行make dtbs，這個命令會編譯arch/arm/boot/dts目錄下的所有dts文件
+編譯完成後再dts相同目錄下就會有同名的dtb文件，再燒到開發板上即可。
+
+可以在開發板上/proc/device-tree目錄下看到名稱為test的資料夾
+其中有我們添加的所有屬性，可以使用cat compatible來查看值為test
+
+接著測試節點的引用
+在根節點的外面，使用下面
+&test1 {
+	compatible = "test1234";
+	status = "okay";
+};
+如果有相同屬性，會被覆蓋掉。
+如果有不同屬性，則會被添加上去。
+編譯並燒寫到開發板上，一樣查看/proc/device-tree目錄下的test資料夾
+cat compatible後可以看到值已經被更改為test1234，且多了一個status屬性。

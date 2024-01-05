@@ -1,0 +1,29 @@
+和platform的driver配對
+要使用driver成員的of_match_table成員，而不是name成員或platform_driver的id_table成員
+    .driver = {
+        .owner = THIS_MODULE,
+        .name = "123", 
+        .of_match_table = of_match_table_test // 要使用這個成員來和設備樹節點配對
+    },
+
+配對完成後就會自動執行probe函數
+取得節點資源和platform一樣，有兩種方法
+1.  直接取得，不安全
+    使用probe的參數pdev->dev.of_node即可
+    要印出name就printk( "node name is %s\n", pdev->dev.of_node->name );
+
+2.  使用相關of函數來取得
+    21_device_tree_of_function有講過
+
+接著就和之前一樣，可以來創建雜項或字符設備
+但是通常這邊就會使用of_iomap函數來進行物理地址到虛擬地址的轉換
+unsigned int * of_iomap( struct device_node *np, int index );
+參數:
+第一個: 設備樹節點
+第二個: 要轉換的物理地址段，例如reg = <0x20ac000 0x0000004 
+                                    0x20ac004 0x0000004>;
+        若要轉換第一段就填0，第二段就填1，以此類推...
+
+若要釋放轉換後的虛擬地址，跟之前一樣使用iounmap即可
+
+接著註冊設備的流程跟之前一樣，可以配合17_的程式碼

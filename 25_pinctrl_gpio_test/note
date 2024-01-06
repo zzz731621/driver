@@ -1,0 +1,61 @@
+使用pinctrl和gpio子系統來實現之前的蜂鳴器驅動
+修改設備樹文件:
+test1:test{
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "test";
+		reg = <0x20ac000 0x0000004>;
+
+		pinctrl-names = "default";
+        pinctrl-0 = <&pinctrl_beep>;
+
+        // 引用gpio5節點
+        // 代表gpio5的第1個pin，而激活狀態為低電位
+		beep-gpio = <&gpio5 1 GPIO_ACTIVE_LOW>;
+		
+	};
+
+然後在iomuxc_snvs中添加
+pinctrl_beep: beep{
+				fsl,pins = <     
+					MX6UL_PAD_SNVS_TAMPER1__GPIO5_IO01       0x17059
+				>;
+			};
+MX6UL_PAD_SNVS_TAMPER1__GPIO5_IO01為廠商定義的macro
+對應的是開發板手冊控制蜂鳴器的pin，GPIO5_IO01
+
+然後記得如果有pin衝突要註解掉，例如其他地方有引用pinctrl_beep或是MX6UL_PAD_SNVS_TAMPER1__GPIO5_IO01被使用過都要註解掉。
+
+驅動流程:
+
+首先一定要先讓設備樹和driver進行配對
+
+完善結構體struct platform_driver
+並且要使用以下結構體來填充platform_driver的.driver成員才能與設備樹配對
+const struct of_device_id of_match_table_test[] = {
+    {.compatible = "test1234"},
+    {}
+};
+
+
+成功後會執行probe函數
+
+在probe函數中，先獲取我們要的設備樹節點test
+接著使用of_get_named_gpio函數
+將pin controller中設定的屬性值beep-gpio = <&gpio5 1 GPIO_ACTIVE_LOW>轉換成GPIO標號
+
+接著使用gpio_request函數來申請一個gpio pin
+
+再來將gpio根據我們的設備來設定成輸入或輸出
+蜂鳴器是輸出所以使用gpio_direction_output來設置
+
+
+都配置好後就和之前一樣可以註冊一個雜項設備
+然後完善file_operations成員等等
+
+之前是直接操作暫存器的值來開啟和關閉蜂鳴器
+這次就可以使用gpio_set_value( beep_gpio, 1 )
+來控制gpio成高電位或低電位來完成。
+
+最後寫一個應用程式來測試，對設備節點進行open、write、close操作
+./app 0或./app 1。

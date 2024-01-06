@@ -1,0 +1,34 @@
+2.  Linux Pinctrl子系統的作用的是什麼
+    (1).    管理系統中所有的可控制的pin(引腳)，在系統初始化時，枚舉所有可控制的pin，並標示這些pin。
+    (2).    管理這些pin的復用(Multiplexing)，pin除了配置成普通的GPIO之外，多個pin也可以組成一個pin group，來完成特定的功能。
+    (3).    配置pin的特性。例如可以開啟或關閉pin上的pull-up、pull-down電阻，或配置driver strength。
+
+3.  不同廠商的開發板，設備樹中的pin controller的定義也不同，都是把某些pin復用成某些功能。
+    可以去linux源碼目錄下的Documentation/devicetree/bindings/pinctrl目錄下找相關廠商的說明文件。
+
+4.  怎麼在代碼中使用pin controller裡面定義好的節點?
+    觀察在設備樹節點名稱為iomuxc的節點
+    例1:
+    pinctrl-names = "default";
+    pinctrl-0 = <&pinctrl_hog_1>;
+    pinctrl-names表示設備的狀態，可以有多個，default就表示狀態0
+    pinctrl-0就代表狀態0的pin配置，也就是default狀態對應的pin，該pin就是在pin controller裡面定義好的節點pinctrl_hog_1的配置，也可以改成需要的其他節點。
+
+    例2:
+    pinctrl-names = "default", "wake up";
+    pinctrl-0 = <&pinctrl_hog_1>;
+    pinctrl-1 = <&pinctrl_hog_2>;
+    pinctrl-names表示設備的狀態，可以有多個，default就表示狀態0，wake up就表示狀態1
+    pinctrl-0就代表狀態0的pin配置，也就是default狀態對應的pin，該pin就是在pin controller裡面定義好的節點pinctrl_hog_1的配置，也可以改成需要的其他節點。
+    pinctrl-0就代表狀態1的pin配置，也就是wake up狀態對應的pin，該pin就是在pin controller裡面定義好的節點pinctrl_hog_2的配置，也可以改成需要的其他節點。
+
+    例3:
+    pinctrl-names = "default";
+    pinctrl-0 = <&pinctrl_hog_1
+                &pinctrl_hog_2>;
+    pinctrl-names表示設備的狀態，可以有多個，default就表示狀態0，wake up就表示狀態1
+    pinctrl-0就代表狀態0的pin配置，也就是default狀態對應的pin，該pin就是在pin controller裡面定義好的節點pinctrl_hog_1和pinctrl_hog_2的配置。
+
+    通過這種引用的方式，可以自定義pin的配置，而不用像以前直接去修改暫存器的值。
+    
+     

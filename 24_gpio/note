@@ -1,0 +1,98 @@
+相比於pinctrl子系統，gpio子系統在linux引進設備樹之前就經存在，
+但在引進設備樹之前要配置gpio的話除了直接操作暫存器之外
+還可以透過開發板廠商提供的相關函數來配置，這會導致每個廠商都有自己的函數，
+造成kernel代碼復用率低，所以引進設備樹後，gpio子系統使用設備樹來改進。
+
+1.  設備樹中如何描述一個gpio
+
+    test1:test{
+        #address-cells = <1>;
+        #size-cells = <1>;
+
+        compatible = "test";
+        reg = <0x20ac000 0x0000004>;
+
+        pinctrl-names = "default";
+        pinctrl-0 = <&pinctrl_test>;
+        test-gpio = <&gpio1 3 GPIO_ACTIVE_LOW>;
+    };
+
+2.  常用gpio子系統提供的api函數
+    (1).    gpio_request函數
+            作用:
+            申請一個GPIO pin
+            定義:
+            int gpio_request(unsigned gpio, const char *label)
+            參數:
+            gpio: 要申請的gpio標號，使用of_get_named_gpio函數從設備樹獲取指定GPIO屬性資訊，會返回GPIO的標號。
+            label: 給gpio設置名字。
+            返回值:
+            成功返回0，失敗則返回其他值。
+
+    (2).    gpio_free函數
+            作用:
+            如果不使用某個GPIO，可以使用該函數來釋放。
+            定義:
+            void gpio_free(unsigned gpio)
+            參數:
+            gpio: 要釋放的gpio標號。
+            返回值:
+            無
+        
+    (3).    gpio_direction_input函數
+            作用:
+            設置某個GPIO為輸入。
+            定義:
+            int gpio_direction_input(unsigned gpio)
+            參數:
+            gpio: 要設置為輸入的gpio標號。
+            返回值:
+            成功為0，失敗為負值。
+        
+    (4).    gpio_direction_output函數
+            作用:
+            設置某個GPIO為輸出。
+            定義:
+            int gpio_direction_output(unsigned gpio, int value)
+            參數:
+            gpio: 要設置為輸出的gpio標號。
+            value: 默認的GPIO輸出值。
+            返回值:
+            成功為0，失敗為負值。
+
+    (5).    gpio_get_value函數
+            作用:
+            獲取某個GPIO的值(0或1)。
+            定義:
+            int gpio_get_value(unsigned gpio)
+            參數:
+            gpio: 要獲取的gpio標號。
+            返回值:
+            成功返回GPIO值，失敗為負值。
+
+    (6).    gpio_set_value函數
+            作用:
+            設置某個GPIO的值(0或1)。
+            定義:
+            void gpio_set_value(unsigned gpio, int value)
+            參數:
+            gpio: 要設置的gpio標號。
+            value: 要設置的值。
+            返回值:
+            無
+
+    (7).    of_get_named_gpio函數
+            作用:
+            將設備樹中類似<&gpio1 3 GPIO_ACTIVE_LOW>的屬性值轉換成對應的GPIO編號。
+            定義:
+            int of_get_named_gpio(struct device_node *np, const char *proname, int index)
+            參數:
+            np: 設備節點。
+            proname: 要獲取的GPIO屬性名稱。
+            index: 索引值，因為一個屬性值可能會包含多個GPIO，若只有一個就為0。
+            返回值:
+            成功返回PGPIO編號，失敗返回一個負數。
+
+    
+    
+    

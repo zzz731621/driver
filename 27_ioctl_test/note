@@ -1,0 +1,40 @@
+測試應用程式使用ioctl來實現點燈
+
+驅動中要在file_operations結構體要多加一個成員，.unlocked_ioctl
+一樣是函數指標，指向一個自定義的function
+
+接著應用程式定義的命令
+#define CMD_TEST0 _IO('L',0)
+也要在驅動中定義一個一樣的
+
+接著就可以使用ioctl函數，就會觸發剛剛自定義的函數
+ioctl函數為
+ioctl( fd, CMD_TEST0, int value );
+fd:         設備節點
+CMD_TEST0:  命令
+value:      要傳遞的數據
+
+
+驅動中自定義的
+misc_ioctl( struct file *file, unsigned int cmd, unsigned long value )
+
+cmd就是我們的命令CMD_TEST0
+value就是我傳遞的值，若沒有的話使用ioctl( fd, CMD_TEST0 )，就空著
+
+
+
+比較不同的有從kernel讀數據的命令
+必須要在應用層宣告一個變數
+int value;
+然後把該變數的地址傳進去
+ioctl( fd, CMD_TEST4, &value );
+
+在驅動中要將數據傳出來還是要用到copy_to_user( 其實也可以直接操作傳進來地址的值，例如*(int *)value = 5，但不安全 )
+先設定要傳的值
+val = 12;
+接著將傳進來的地址value作強制類型轉換(int *)value
+然後一樣傳val的地址，還有大小等等
+if ( copy_to_user( (int *)value, &val, sizeof( val ) ) != 0 ) {
+    printk( "copy_to_user error\n" );
+    return -1;
+} // if

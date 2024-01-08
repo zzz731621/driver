@@ -1,0 +1,155 @@
+基本上在設備樹中的中斷節點，都是基於廠商提供的設備樹文件來進行二次開發
+因為芯片的細節廠商不一定會透漏
+
+
+例如imx6ull的中斷節點描述為
+intc: interrupt-controller@00a01000 {
+    compatible = "arm,cortex-a7-gic";
+    #interrupt-cells = <3>;
+    interrupt-controller;
+    reg = <0x00a01000 0x1000>,
+            <0x00a02000 0x100>;
+};
+
+interrupt-cells = <3>設定為3
+代表中斷要用3個cells來描述
+
+gpio1: gpio@0209c000 {
+    compatible = "fsl,imx6ul-gpio", "fsl,imx35-gpio";
+    reg = <0x0209c000 0x4000>;
+    interrupts = <GIC_SPI 66 IRQ_TYPE_LEVEL_HIGH>,
+                    <GIC_SPI 67 IRQ_TYPE_LEVEL_HIGH>;
+    gpio-controller;
+    #gpio-cells = <2>;
+    interrupt-controller;
+    #interrupt-cells = <2>;
+};
+
+
+描述一個設備的中斷節點
+key {
+    #address-cells = <1>;
+    #size-cells = <1>;
+    compatible = "key";
+    pinctl-names = "default";
+    pinctl-0 = <&pinctl_key>;
+    key-gpio = <&gpio1 18 GPIO_ACTIVE_LOW>; /* KEY0 */
+    interrupt-parent = <&gpio1>;
+    interrupts = <18 IRQ_TYPE_EDGE_BOTH>; /* FALLING RISING */
+    status = "okay";
+};
+
+
+首先用到的compatible屬性，用來和驅動配對
+pinctl子系統，設定gpio的復用關係
+然後要使用到GPIO，也會用到GPIO子系統來操作GPIO
+
+因為使用到gpio1，所以interrupt-parent = <&gpio1>這個屬性來描述中斷控制器
+然後interrupts = <18 IRQ_TYPE_EDGE_BOTH>屬性來描述中斷，有兩個cells因為在gpio1節點設定#interrupt-cells = <2>;
+18代表gpio1的第18號pin，而IRQ_TYPE_EDGE_BOTH代表中斷的觸發方式
+IRQ_TYPE_EDGE_BOTH定義在include/linux/irq.h中
+enum {
+        IRQ_TYPE_NONE           = 0x00000000,
+        IRQ_TYPE_EDGE_RISING    = 0x00000001,
+        IRQ_TYPE_EDGE_FALLING   = 0x00000002,
+        IRQ_TYPE_EDGE_BOTH      = (IRQ_TYPE_EDGE_FALLING | IRQ_TYPE_EDGE_RISING),
+        IRQ_TYPE_LEVEL_HIGH     = 0x00000004,
+        IRQ_TYPE_LEVEL_LOW      = 0x00000008,
+        IRQ_TYPE_LEVEL_MASK     = (IRQ_TYPE_LEVEL_LOW | IRQ_TYPE_LEVEL_HIGH),
+        IRQ_TYPE_SENSE_MASK     = 0x0000000f,
+        IRQ_TYPE_DEFAULT        = IRQ_TYPE_SENSE_MASK,
+
+        IRQ_TYPE_PROBE          = 0x00000010,
+
+        IRQ_LEVEL               = (1 <<  8),
+        IRQ_PER_CPU             = (1 <<  9),
+        IRQ_NOPROBE             = (1 << 10),
+        IRQ_NOREQUEST           = (1 << 11),
+        IRQ_NOAUTOEN            = (1 << 12),
+        IRQ_NO_BALANCING        = (1 << 13),
+        IRQ_MOVE_PCNTXT         = (1 << 14),
+        IRQ_NESTED_THREAD       = (1 << 15),
+        IRQ_NOTHREAD            = (1 << 16),
+        IRQ_PER_CPU_DEVID       = (1 << 17),
+        IRQ_IS_POLLED           = (1 << 18),
+        IRQ_DISABLE_UNLAZY      = (1 << 19),
+};
+
+
+所以在設備樹中配置中斷時只需要兩個步驟，第一步是把pin設置成gpio功能，第二步是使用interrupt-parent和interrupts屬性來描述中斷。
+但是如果是使用gpio的話，不一定要設置interrupt-parent和interrupts屬性，因為有相關函數可以獲取gpio對應的中斷號，但通常還是會寫上。
+
+
+中斷相關函數
+1.  獲取中斷號相關函數
+    寫驅動時需要用到中斷號，中斷資訊已經寫到設備樹當中，可以通過
+    irq_of_parse_and_map函數從interrupts屬性中提取到對應的設備號
+    定義:
+    unsigned int irq_of_parse_and_map(struct device_node *dev,int index)
+    參數:
+    dev:    設備節點
+    index:  索引值，因為interrupts屬性可能包含多種中斷訊息
+    返回值:
+    中斷號
+
+    如果使用gpio的話，可以使用gpio_to_irq(unsigned int gpio)
+    定義:
+    int gpio_to_irq(unsigned int gpio)
+    參數:
+    gpio:   GPIO標號
+    返回值:
+    GPIO對應的中斷號
+
+2.  申請中斷相關函數
+    和GPIO一樣，在Linux內核中，如果要使用某個中斷也是需要申請的
+    使用函數為request_irq
+    定義
+    int request_irq(unsigned int irq,
+                    irq_handler_t handler,
+                    unsigned long flags,
+                    const char *name,
+                    void *dev)
+    參數:
+    irq:    要申請的中斷號，是上面函數獲得的。
+    handler:中斷處理函數，當中斷發生後就會執行，由開發者決定而不是kernel。
+    flags:  中斷標誌，在include/linux/interrupt.h中定義，以下是常用的標誌。
+            IRQF_SHARED             共享中斷
+            IRQF_ONESHOT            單次中斷
+            IRQF_TRIGGER_NONE       無觸發
+            IRQF_TRIGGER_RISING     上升沿觸發
+            IRQF_TRIGGER_FALLING    下降沿觸發
+            IRQF_TRIGGER_HIGH       高電平觸發
+            IRQF_TRIGGER_LOW        低電平觸發
+    name:   中斷名稱，設置後可以在/proc/interrupts文件中看到對應的中斷名字。
+    dev:    一般情況將dev設置成設備結構體，dev會傳遞給irq_handler_t的第二個參數。
+    返回值:
+    成功為0，其他負值為失敗，如果返回-EBUSY表示中斷已經被申請。
+
+3.  中斷處理函數
+    使用request_irq申請中斷的時候需要設置中斷處理函數handler
+    定義:
+    irqreturn_t (*irq_handler_t) (int, void *)
+    參數:
+    第一個為中斷處理函數對應的中斷號
+    第二個是一個void指標，需要和request_irq函數的dev參數保持一致
+    用於區分共享中斷的不同設備，dev也可以指向設備結構體。
+    返回值:
+    irqreturn_t類型
+    enum irqreturn {
+        IRQ_NONE = (0 << 0);        // 表示不屬於本驅動的中斷
+        IRQ_HANDLED = (1 << 0);     // 最常用，代表正常處理
+        IRQ_WAKE_THREAD = (1 << 1); // 在中斷下半部分處理
+    };
+    typedef enum irqreturn irqreturn_t;
+
+4.  free_irq函數
+    中斷使用完成後就要通過free_irq函數釋放掉對應的中斷。
+    如果中斷不是共享的，那麼free_irq會刪除中斷處理函數並禁止中斷
+    定義:
+    void free_irq(unsigned int irq,void *dev)
+    參數:
+    irq:    要釋放的中段
+    dev:    若中斷設置為共享的話，此參數就用來區分具體設備。
+            共享中斷只有在釋放
+    返回值:
+    無

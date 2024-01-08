@@ -1,0 +1,83 @@
+首先要在設備樹中描述按鍵中斷
+test_key{
+    compatible = "keys";
+    pinctrl-names = "default";
+    pinctrl-0 = <&pinctrl_gpio_key1>;
+    gpios = <&gpio1 18 GPIO_ACTIVE_LOW>;
+    //interrupt-parent = <>;
+    //interrupts = <>;
+};
+因為我們要使用gpio當作中斷節點，所以先不定義下面兩個屬性
+interrupt-parent = <>;
+interrupts = <>;
+
+
+然後因為我們要使用到gpio
+所以要先獲取gpio標號
+使用
+gpio_num = of_get_named_gpio( test_device_node, "gpios", 0 );
+
+
+接著設置gpio的方向成輸入，因為要接收中斷訊號
+gpio_direction_input( gpio_num );
+
+
+然後就能夠獲取gpio對應的中斷號
+但只有在使用gpio為中斷節點才能使用
+irq = gpio_to_irq( gpio_num );
+
+
+接著就申請中斷
+1 irq 中斷號，也就是上面取得的
+2 test_key，上面自訂的函數
+3 macro表示上沿觸發
+4 中斷名稱
+5 要給test_key傳的參數，test_key的第二個參數，但因為我們沒有傳，所以為NULL
+ret = request_irq( irq, test_key, IRQF_TRIGGER_RISING, "test_key", NULL );
+
+
+別忘了也要在exit中釋放中斷
+// 釋放用不到的中斷
+// 第二個參數是傳遞給test_key的參數，但因為我們沒有傳，所以為NULL
+free_irq( irq, NULL );
+
+
+
+
+編譯好設備樹並燒寫到開發板上後
+加載驅動完成後
+就能使用cat /proc/interrupts 
+看到名為test_key的中斷
+且最前面的編號和我們加載驅動時印出的irq一樣
+
+但是因為是模擬開發板所以無法實際測試按鍵按下後印出test_key
+
+
+接著再修改設備樹文件
+因為剛剛是透過gpio_to_irq函數來獲取中斷號
+但有時候不一定是使用gpio當作中斷節點
+所以要測試irq_of_parse_and_map函數
+
+先把屬性添加到裡面
+test_key{
+    compatible = "keys";
+    pinctrl-names = "default";
+    pinctrl-0 = <&pinctrl_gpio_key1>;
+    gpios = <&gpio1 18 GPIO_ACTIVE_LOW>;
+    interrupt-parent = <&gpio1>;
+	interrupts = <18 IRQ_TYPE_EDGE_BOTH>;
+};
+
+接著剛剛是使用
+irq = gpio_to_irq( gpio_num );
+
+
+這次我們使用
+irq = irq_of_parse_and_map( test_device_node, 0 );
+來獲取中斷號
+
+
+接著和上面流程一樣
+編譯設備樹，加載驅動等等
+
+可以發現也能夠獲取中斷號

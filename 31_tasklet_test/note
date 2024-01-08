@@ -1,0 +1,60 @@
+1.  什麼是tasklet
+    是一種處理中斷上下部分的常用方法，是一種特殊的軟中斷。
+    其他方法還有工作隊列和軟中斷
+
+2.  要怎麼使用tasklet來處理中斷上下部分
+    Linux將中斷分成兩部分，一個是上半部分，只處理緊急的事情，
+    然後可以調用tasklet來啟動中斷下半部分，比較耗時的事情就放到下半部分處理。
+
+    調用tasklet後，tasklet綁定的函數不會馬上執行，
+    而是出中斷後，經過一個很短的不確定時間再來執行。
+
+3.  tasklet定義
+    由tasklet_struct結構體表示，每個結構體代表一個tasklet
+    在include/linux/interrupt.h中定義為
+    struct tasklet_struct
+    {
+            struct tasklet_struct *next;
+            unsigned long state;
+            atomic_t count;
+            void (*func)(unsigned long);
+            unsigned long data;
+    };
+
+    next:                           是linked-list，表示下一個tasklet
+    state:                          tasklet的狀態
+    count:                          表示tasklet是否處於激活狀態，如果是0就是激活狀態，非0就處在非激活狀態
+    void (*func)(unsigned long):    tasklet的綁定函數，參數是下面的data
+    data:                           tasklet的綁定函數傳遞的參數
+
+4.  tasklet相關函數
+    (1).    tasklet_schedule函數
+            作用:   調用tasklet
+            定義:
+            void tasklet_schedule(struct tasklet_struct *t); 
+            參數:
+            *t:     指向tasklet_struct結構的指標
+
+    (2).    tasklet_init函數
+            作用:   動態初始化tasklet
+            定義:
+            void tasklet_init(struct tasklet_struct *t, void (*func)(unsigned long), unsigned long data);
+            參數:
+            *t:     指向tasklet_struct結構的指標
+            func:   tasklet綁定的函數
+            data:   tasklet綁定的函數的參數
+
+    (3).    tasklet_kill函數
+            作用:   刪除一個tasklet
+            定義:
+            void tasklet_kill(struct tasklet_struct *t);
+            參數:
+            *t:     指向tasklet_struct結構的指標
+            這個函數會等待tasklet執行完畢，然後再將他移除，該函數可能會引起休眠，所以要禁止在中斷上下部分使用。
+
+5.  使用tasklet設計中斷下部分的流程
+    (1).    定義一個tasklet_struct結構體
+    (2).    動態初始化tasklet
+    (3).    編寫tasklet綁定的函數
+    (4).    在中斷上部分調用tasklet
+    (5).    在卸載驅動module時刪除tasklet

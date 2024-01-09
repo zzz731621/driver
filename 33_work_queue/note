@@ -1,0 +1,65 @@
+1.  工作隊列(workqueue)是什麼
+    是實現中斷上下部分的機制之一，是一種將工作推後執行的形式。
+    與tasklet的區別是，tasklet不能休眠，工作隊列可以。
+    tasklet可以處理比較耗時間的任務。
+    工作隊列可以處理非常複雜且更耗時間的任務。
+
+2.  工作隊列的種類
+    (1).    共享工作隊列:
+            kernel中的一個工作隊列，所有任務都共享，適用於通用、不需要太多特殊處理的後台任務
+            不需自己創建，但如果前面的工作較耗時，會影響到後面工作。
+
+    (2).    自訂工作隊列:
+            允許每個module或子系統創建自己的工作隊列，需要自己創建開銷較大，但不會被其他工作影響。
+3.  相關函數
+    linux中是用work_struct結構體來描述對列中工作的
+    定義在include/linux/queue.h裡面
+    struct work_struct {
+            atomic_long_t data;
+            struct list_head entry;
+            work_func_t func;
+    };
+    其中func最為重要，是一個函數指標，要將需要完成的工作寫在函數裡面。
+
+    (1).    DECLARE_WORK macro
+            定義:
+            #define DECLARE_WORK(n, f)
+            作用:
+            靜態定義並初始化工作隊列
+
+    (2).    INIT_WORK
+            定義:
+            #define __INIT_WORK(_work, _func) 
+            作用:
+            動態定義並初始化work_struct
+            參數:
+            work:   工作隊列地址
+            func:   工作函數
+
+            所以如果要動態初始化，就可以這樣做
+            struct work_struct test;
+            INIT_WORK(&test, func);
+
+    (3).    schedule_work
+            定義:
+            int schedule_work(struct work_struct *work);
+            作用:
+            調度工作，把work_struct掛到CPU相關的工作結構linked-list上，等待處理。
+            參數:
+            工作地址
+
+            調度完並不會馬上執行，而是加到共享工作隊列上，等輪到才會執行。
+
+4.  使用流程
+    和tasklet類似
+    (1).    定義並初始化
+            struct work_struct key_test;
+            INIT_WORK(&key_test, (work_func_t )test);
+            test為我們要執行的函數，記得要強制轉換，不然會出錯。
+    
+    (2).    在中斷上部分調用，將work_struct放到工作隊列中
+            schedule_work(&key_test);
+
+    如此一來當我們按下按鍵後，
+    他就會將test函數中的任務放到工作隊列中，
+    並等待輪到他執行。

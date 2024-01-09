@@ -82,6 +82,7 @@
 
 4.  使用流程
     (1).    像之前一樣寫設備樹節點、申請GPIO和申請中斷最後註冊一個雜項設備
+    (2).    接著定義並初始化工作隊列頭，方法上面筆記有寫，DECLARE_WAIT_QUEUE_HEAD(key_wq);
     (2).    在中斷處理函數中將條件設為true並使用wake_up函數喚醒process
     (3).    在file_operations中的對應函數( 在應用程式是使用read，所以我們修改read就好 )，調用wait_event_interruptible來使不符合條件process休眠
     (4).    一樣的在下方要將條件設回來，driver.c中86行註解有解釋。

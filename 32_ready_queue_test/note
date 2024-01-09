@@ -1,0 +1,91 @@
+1.  阻塞和非阻塞的概念
+    阻塞:   當前設備如果不可讀或不可寫時，也就是不能獲得資源的時候，那麼當前process會被掛起，
+            只有當設備滿足條件時才能返回。
+    非阻塞: 當前設備如果不可讀或不可寫時，該函數不會阻塞當前process，要麼放棄要麼不停地查詢，或者直到可以操作為止。
+    讀寫函數可以透過參數來指定
+    fd = open( filepath, O_RWRW ); 默認以阻塞模式打開
+    fd = open( filepath, O_RWRW | O_NONBLOCK ); 以非阻塞模式打開
+
+2.  等待隊列基礎知識
+    當process去訪問設備時，經常需要等待有特定事件發生後再繼續往下運行，
+    這時候就需要在驅動中實現當條件不滿足時將process休眠，條件滿足時再由kernel喚醒，
+    等待隊列就實現了在事件上的條件等待。
+    若不進行條件等待，就等於是一直在做白工，會占用很多CPU資源。
+
+    (1).    等待隊列頭
+            就是一個等待隊列的head，每個訪問設備的process都是一個隊列，
+            當設備不可用的時候就要將process對應的等待隊列添加到等待隊列中。
+            結構體定義在include/linux/wait.h:
+            struct __wait_queue_head {
+                    spinlock_t              lock;
+                    struct list_head        task_list;
+            };
+
+            定義一個等待隊列頭
+            wait_queue_head_t test_wq;
+
+            定義好後需要初始化，可以使用init_waitqueue_head
+            定義:
+            void init_waitqueue_head( wait_queue_head_t *q );
+
+            也可以使用macro DECLARE_WAIT_QUEUE_HEAD來一次性完成等待隊列頭的定義和初始化
+            定義:
+            DECLARE_WAIT_QUEUE_HEAD(wait_queue_head_t *q);
+
+3.  等待隊列相關函數
+    (1).    init_waitqueue_head函數
+            定義:
+            void init_waitqueue_head( wait_queue_head_t *q );
+            作用:
+            動態初始化等待隊列頭
+            參數:
+            q是wait_queue_head_t指針
+
+    (2).    wait_event macro
+            定義:
+            wait_event(wq, condition)
+            作用:
+            不可中斷的阻塞等待，讓調用的process進入不可中斷的睡眠狀態，在等待隊列中睡眠
+            直到condition變成true，才被kernel喚醒。
+            參數:
+            wq:         wait_queue_head_t類型變數
+            condition:  等待的條件，為false才進入睡眠
+
+    (3).    wait_event_interruptible macro
+            定義:
+            wait_event_interruptible(wq, condition)
+            作用:
+            可中斷的阻塞等待，讓調用的process進入可中斷的睡眠狀態，在等待隊列中睡眠
+            直到condition變成true，或被信號打斷，才被kernel喚醒。
+            參數:
+            wq:         wait_queue_head_t類型變數
+            condition:  等待的條件，為false才進入睡眠
+            返回值:
+            判斷condition是否為真，如果為真則返回0，若process被信號喚醒，會返回-ERESTARTSYS錯誤
+
+    (4).    wake_up macro
+            定義:
+            wake_up(x)
+            作用:
+            喚醒所有休眠process
+            參數:
+            x:      等待隊列頭結構指標
+
+    (5).    wake_up_interruptible macro
+            定義:
+            wake_up_interruptible(x)
+            作用:
+            喚醒所有可中斷休眠process
+            參數:
+            x:      等待隊列頭結構指標
+
+
+4.  使用流程
+    (1).    像之前一樣寫設備樹節點、申請GPIO和申請中斷最後註冊一個雜項設備
+    (2).    在中斷處理函數中將條件設為true並使用wake_up函數喚醒process
+    (3).    在file_operations中的對應函數( 在應用程式是使用read，所以我們修改read就好 )，調用wait_event_interruptible來使不符合條件process休眠
+    (4).    一樣的在下方要將條件設回來，driver.c中86行註解有解釋。
+    所以當我們執行應用程式，在他read設備節點後，就先判斷條件，若為true就使process休眠，反之亦然
+    當我們按下按鍵後，就會將條件設為true再將process喚醒，然後執行value = !value
+    這時應用程式就會被喚醒，然後印出當時value的值，而不是一直重複的印。
+    可以避免浪費CPU資源，因為若不使用等待隊列頭，就會一直暫用CPU資源來印出重複的value值。

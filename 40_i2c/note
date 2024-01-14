@@ -1,0 +1,155 @@
+1.  在應用層中使用i2c讀寫
+
+要定義
+struct i2c_rdwr_ioctl_data結構體
+struct i2c_msg結構體
+
+i2c_msg結構體來封裝要傳遞的數據
+
+ioctl使用i2c_rdwr_ioctl_data結構體來向kernel傳遞數據
+
+
+__u8 buff[256];
+成員有4個，108行有解釋
+struct i2c_msg msg = {
+    .addr = slave_addr, // 暫存器地址
+    .flags = 0, // 0是寫，1是讀
+    .buf = buff, // 根據flags的值來決定是要發送buf內的數據還是要接收數據到buf內
+    .len = len + 1
+};
+
+// 設定結構體成員
+i2c_read_lcd.msgs = &msg;
+// msg只有1個元素
+i2c_read_lcd.nmsgs = 1;
+
+136行有解釋
+buff[0] = slave_addr;
+memcpy( &buff[1], &reg_addr, len );
+
+// 使用ioctl傳送/接收數據
+ret = ioctl( fd, I2C_RDWR, &i2c_read_lcd );
+
+
+2.  在內核層中使用i2c讀寫
+
+首先驅動註冊之前，必須要初始化
+static struct i2c_driver test = {
+    .driver = {
+        .name = "xxx",
+    },
+    .probe = xxx_probe,
+    .remove = xxx_remove,
+    .id_table = xxx_table
+};
+其中driver、probe、remove、id_table都必須要初始化才能配對成功
+，尤其id_table不管用不用設備樹都要設定。
+
+初始化完成後，就要把i2c_driver註冊進kernel
+相關函數:
+    1.  i2c_add_driver函數
+        作用:  
+        註冊一個i2c驅動
+        定義:
+        #define i2c_add_driver(driver) i2c_register_driver(THIS_MODULE, driver)
+        參數:
+        struct i2c_driver指標
+        返回值:
+        失敗返回負值
+    
+    2.  i2c_del_driver函數
+        作用:
+        刪除一個i2c驅動
+        定義:
+        extern void i2c_del_driver(struct i2c_driver *);
+        參數:
+        struct i2c_driver指標
+
+
+大概流程:
+要先有i2c總線，基本上都已經寫好了
+若要自己寫要使用platform_driver來和i2c節點的compatible配對，不能用i2c_driver
+
+先去/sys/bus/i2c/devices目錄下看有沒有對應的資料夾
+i2c-0代表是設備樹中i2c1的節點
+0-0050代表是i2c1節點下的子節點test@50，第一個0代表是使用第一個i2c也就是設備樹中的i2c-1
+
+接著才能去使用i2c_driver來跟i2c下的設備樹子節點配對
+這樣才能配對成功
+
+1.  定義i2c_driver結構體，跟platform_driver類似
+    // i2c_driver結構體
+    static struct i2c_driver myi2c_driver = {
+        .driver = {
+            .owner = THIS_MODULE,
+            .name = "i2c1_test_dev_name",
+            .of_match_table = myi2c_match
+        },
+        .probe = myi2c_probe,
+        .remove = myi2c_remove,
+        .id_table = myi2c_id,
+    };
+
+2.  定義i2c_device_id和of_device_id
+    不管使不使用設備樹i2c_device_id成員都要定義
+    但使用設備樹的話，是以of_device_id來進行配對
+    const struct i2c_device_id myi2c_id[] = {
+        {.name = "i2c1_i2c_device_id", 0},
+        {},
+    };
+    const struct of_device_id myi2c_match[] = {
+        {.compatible = "i2c1_test_dev"},
+        {},
+    };
+
+3.  註冊i2c driver
+    ret = i2c_add_driver( &myi2c_driver );
+
+4.  在exit出口記得取消註冊i2c driver
+    i2c_del_driver( &myi2c_driver );
+
+接著就可以對暫存器讀寫了
+讀寫要透過struct i2c_msg結構體來封裝
+成員有4個
+addr:   暫存器地址
+flags:  讀寫標誌，讀為1或寫為0
+len:    讀寫多少bytes
+buf:    若flags為0代表寫buf中的值到addr地址中，若為1代表讀addr地址的值到buf中
+
+如果要讀必須要有2個元素
+struct i2c_msg msgs[] = {
+    [0] = {
+        .addr   = client->addr,
+        .flags  = 0,
+        .len    = sizeof( reg_addr ),
+        .buf    = &reg_addr
+    },
+    [1] = {
+        .addr   = client->addr,
+        .flags  = 1,
+        .len    = sizeof( data ),
+        .buf    = &data
+    }
+};
+因為必須要先發送要讀取的地址給i2c總線，這邊是i2c0，
+接著總線會將指定地址的值回傳回來。
+
+如果要寫可以只有1個元素
+struct i2c_msg msgs[] = {
+    [0] = {
+        .addr   = client->addr,
+        .flags  = 0,
+        .len    = len + 1,
+        .buf    = buff
+    }
+};
+
+而buff[0]必須要放的是暫存器地址
+代表說數據從buff[1]開始寫
+所以len才會是len + 1
+
+最後在使用函數傳輸
+// 1. 用到的adapter
+// 2. 要讀或寫的struct i2c_msg結構體
+// 3. 上面結構體的元素數量
+i2c_transfer( client->adapter, msgs, 1 );
